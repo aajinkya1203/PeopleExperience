@@ -1,56 +1,18 @@
 const graphql = require('graphql');
-const _ = require('lodash')
+const _ = require('lodash');
+const BlogModel = require('../model/BlogModel');
+const DistrictModel = require('../model/DistrictModel');
 
 const { GraphQLObjectType,
         GraphQLString,
         GraphQLSchema,
         GraphQLID,
-        GraphQLInt
+        GraphQLInt,
+        GraphQLList,
+        GraphQLNonNull
     } = graphql;
 
-const dummyData = [
-    {id:'1', name:"Aajinkya",tag:"Other", problem:"Lorem Ipsum blah blah blah", districtID:'18'},
-    {id:'2', name:"Not Aajinkya",tag:"Food", problem:"Lorem Ipsum blah blah blah", districtID:'1'},
-    {id:'3', name:"Test Aajinkya",tag:"Service Problems", problem:"Lorem Ipsum blah blah blah", districtID:'5'}
-]
-const dummyData2 = [
-    {id:'1',name:'Ahmednagar'},
-    {id:'2',name:'Akola'},
-    {id:'3',name:'Amravati'},
-    {id:'4',name:'Aurangabad'},
-    {id:'5',name:'Beed'},
-    {id:'6',name:'Bhandara'},
-    {id:'7',name:'Buldhana'},
-    {id:'8',name:'Chandrapur'},
-    {id:'9',name:'Dhule'},
-    {id:'10',name:'Gadchiroli'},
-    {id:'11',name:'Gondia'},
-    {id:'12',name:'Hingoli'},
-    {id:'13',name:'Jalgaon'},
-    {id:'14',name:'Jalna'},
-    {id:'15',name:'Kolhapur'},
-    {id:'16',name:'Latur'},
-    {id:'17',name:'Mumbai City'}, 
-    {id:'18',name:'Mumbai Suburban'}, 
-    {id:'19',name:'Nagpur'},
-    {id:'20',name:'Nanded'},
-    {id:'21',name:'Nandurbar'},
-    {id:'22',name:'Nashik'},
-    {id:'23',name:'Osmanabad'},
-    {id:'24',name:'Palghar'},
-    {id:'25',name:'Parbhani'},
-    {id:'26',name:'Pune'},
-    {id:'27',name:'Raigad'},
-    {id:'28',name:'Ratnagiri'},
-    {id:'29',name:'Sangli'},
-    {id:'30',name:'Satara'},
-    {id:'31',name:'Sindhudurg'},
-    {id:'32',name:'Solapur'},
-    {id:'33',name:'Thane'},
-    {id:'34',name:'Wardha'},
-    {id:'35',name:'Washim'},
-    {id:'36',name:'Yavatmal'}
-]
+
 
 const BlogType = new GraphQLObjectType({
     name: 'Blog',
@@ -62,8 +24,7 @@ const BlogType = new GraphQLObjectType({
         district: {
             type: DistrictType,
             resolve(parent,args){
-                console.log(parent)
-                return _.find(dummyData2, { id: parent.districtID })
+                return DistrictModel.findById(parent.districtID);
             }
         }
     })
@@ -74,6 +35,12 @@ const DistrictType = new GraphQLObjectType({
     fields: ()=>({
         id: { type: GraphQLID },
         name: { type: GraphQLString },
+        blogs: {
+            type: new GraphQLList(BlogType),
+            resolve(parent, args){
+                return BlogModel.find( { districtID: parent.id } );
+            }
+        }
     })
 });
 
@@ -84,20 +51,71 @@ const RootQuery = new GraphQLObjectType({
             type: BlogType,
             args: { id: { type: GraphQLID } },
             resolve(parent, args){
-                //do some fetching to db / api call
-                return _.find(dummyData, { id: args.id })
+                return BlogModel.findById( args.id );
             }
         },
         District: {
             type: DistrictType,
             args: { id: { type: GraphQLID } },
             resolve(parent,args){
-                return _.find(dummyData2, { id: args })
+                return DistrictModel.findById( args.id );
+            }
+        },
+        Blogs: {
+            type: new GraphQLList(BlogType),
+            resolve(parent,args){
+                return BlogModel.find({});
+            }
+        },
+        Districts:{
+            type: new GraphQLList(DistrictType),
+            resolve(parent, args){
+                return DistrictModel.find({});
+            }
+        }
+    }
+});
+
+const Mutation = new GraphQLObjectType({
+    name: 'Mutation',
+    fields:{
+        addDistrict:{
+            type: DistrictType,
+            args: { name: { type: new GraphQLNonNull(GraphQLString) } },
+            resolve(parent, args){
+                let district = new DistrictModel({
+                    name: args.name
+                });
+                district.save().then((result)=>{
+                    console.log("District Saved",result);
+                    return result.name
+                }).catch(err=>{
+                    console.log("Error occured!",err);
+                })
+            }
+        },
+        addBlog:{
+            type: BlogType,
+            args:{
+                name: { type: new GraphQLNonNull(GraphQLString) },
+                tag: { type: new GraphQLNonNull(GraphQLString) },
+                problem: { type: new GraphQLNonNull(GraphQLString) },
+                districtID: { type: new GraphQLNonNull(GraphQLID) }
+            },
+            resolve(parent, args){
+                let blog = new BlogModel({
+                    name: args.name,
+                    tag: args.tag,
+                    problem: args.problem,
+                    districtID: args.districtID
+                });
+                return blog.save()
             }
         }
     }
 })
 
 module.exports = new GraphQLSchema({
-    query: RootQuery
+    query: RootQuery,
+    mutation: Mutation
 })
