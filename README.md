@@ -3,7 +3,7 @@ A proposed feature to be included in the COVID-19 MH Team's page for getting the
 
 >This is mini full-stack project and it was done in order to gain some insight into the COVID-19 statistics while at the same time helping the Team by contributing my part to a big movement by keeping a track of people's experience and the difficulties that they face inorder to create more awareness as to what is going on in different places / district which the media doesn't show us!
 
-## Screenshots
+## Screenshot
 <p align="center>
   <img src="https://github.com/aajinkya1203/PeopleExperience/blob/master/server/Capture.PNG" alt="Working Demo">
 </p>
